@@ -61,18 +61,15 @@ class TempestController < BarclampController
     end
   end
 
-  def _get_results_html(test_run)
-    results_html = "log/#{test_run[:uuid]}.html"
-    
-    return results_html if File.exist?(results_html)
+  def _prepare_results_html(test_run)
+    return if File.exist?(test_run["results.html"])
     
     xml = REXML::Document.new(IO.read(test_run["results.xml"]))
-    File.open(results_html, "w") { |out| 
+    File.open(test_run["results.html"], "w") { |out| 
       out.write(
         render_to_string(:template => 'barclamp/tempest/_results_content.html.haml',
           :locals => {:xml => xml }, :layout => false))
     }
-    results_html
   end
 
   def results
@@ -82,7 +79,8 @@ class TempestController < BarclampController
     respond_to do |format|
       format.xml { render :file => @test_run["results.xml"] }
       format.html { 
-        render :template => 'barclamp/tempest/results.html.haml', :locals => {:results_html => _get_results_html(@test_run) }
+        _prepare_results_html @test_run
+        render :template => 'barclamp/tempest/results.html.haml'
       }
     end
   end

@@ -129,9 +129,17 @@ class TempestService < ServiceObject
   end
 
   def clear_test_runs
-    tempest_db = _get_or_create_db
+    def delete_file(file_name)
+      File.delete(file_name) if File.exist?(file_name)
+    end
+
+    (tempest_db = _get_or_create_db)["test_runs"].each do |test_run|
+      delete_file(test_run["results.html"])
+      delete_file(test_run["results.xml"])
+    end
 
     tempest_db["test_runs"] = []
+
     lock = acquire_lock(@bc_name)
     tempest_db.save
     release_lock(lock)
@@ -143,7 +151,7 @@ class TempestService < ServiceObject
     test_run_uuid = `uuidgen`.strip
     test_run = { 
       "uuid" => test_run_uuid, "started" => Time.now.utc.to_i, "ended" => nil, 
-      "status" => "running", "node" => node, "results.xml" => "log/#{test_run_uuid}.xml"}
+      "status" => "running", "node" => node, "results.xml" => "log/#{test_run_uuid}.xml", "results.html" => "log/#{test_run_uuid}.html"}
 
     tempest_db = _get_or_create_db
 
